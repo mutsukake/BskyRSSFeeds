@@ -1,19 +1,15 @@
 from dotenv import load_dotenv
 import os
 import sqlite3
+from config import load_config
 
 from inor_utils import get_starred, get_attributes, get_ids
+config = load_config()
+table_name = config["table_name"]
+db_name = config["db_name"]
 
-load_dotenv()
-DB_NAME = os.getenv("DB_NAME")
-TABLE_NAME = os.getenv("TABLE_NAME")
+db_path = os.path.join(os.path.dirname(__file__), db_name)
 
-db_path = os.path.join(os.path.dirname(__file__), DB_NAME)
-
-def get_table_data(conn, table_name):
-    c = conn.cursor()
-    c.execute(f'SELECT * FROM {table_name}')
-    return c.fetchall()
 
 def select_starred_items(starred_items, posting_ids):
     
@@ -58,3 +54,57 @@ def save_items(saving_items, table_name):
     finally:
         if conn:
             conn.close()
+
+def load_posted_ids(table_name):
+    """Loads the IDs of posted items from the database."""
+    posted_ids = []
+    
+    try:
+        with sqlite3.connect(db_path) as conn:
+            c = conn.cursor()
+                    # Create the table if it doesn't exist
+            c.execute(f'''
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                url TEXT
+            )
+            ''')
+            
+            c.execute(f'SELECT id FROM {table_name}')
+            
+            posted_ids = [row[0] for row in c.fetchall()]
+    except sqlite3.Error as e:
+        print(f"An error occurred: {str(e)}")
+        return None
+
+    finally:
+        if conn:
+            conn.close()
+    return posted_ids
+
+def get_posting_items(inor_access_token, table_name):
+
+    # Save the new starred items to the database
+    row_starred_items = get_starred(inor_access_token)
+    starred_item = get_attributes(row_starred_items)
+    starred_ids = get_ids(starred_item)
+
+    # Get the posted ids from the database
+    posted_ids = load_posted_ids(table_name)
+
+    print(f"posted_ids: {posted_ids}")
+    print(f"starred_ids: {starred_ids}")
+
+    posting_ids = set(starred_ids) - set(posted_ids)
+    if len(posting_ids) == 0:
+        print("No new items to post")
+        return
+    print(f"posting_ids: {posting_ids}")
+
+    # Retrieve the items to be saved from ids
+    result = select_starred_items(starred_item, posting_ids)
+    
+    return result
+
+
