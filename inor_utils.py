@@ -106,29 +106,6 @@ def save_starred_inor():
         print("Committing changes to the database")
         conn.commit()
     
-def some_protected_page(access_token):
-    session = requests.Session()
-
-    # Set the Authorization and AppId headers
-    session.headers.update({
-        'Authorization': f'Bearer {access_token}',
-        'AppId': inor_app_id  # Replace with your actual AppId
-    })
-
-    # Make a request using the session
-    response = session.get('https://www.inoreader.com/reader/api/0/user-info')
-    
-    print(f"Status code: {response.status_code}")
-    print(f"Response body: {response.text}")
-
-    if response.status_code == 200:
-        # Process the data
-        data = response.json()
-        print(f"succesfully fetched data: {response.status_code}")
-    else:
-        # Debug: Print response details for error analysis
-        print(response.json())
-        return "Failed to fetch data from Inoreader.", response.status_code
 
 def load_posted_ids(table_name):
     """Loads the IDs of posted items from the database."""
@@ -163,7 +140,7 @@ def get_posting_ids(posted_ids, starred_ids):
     posting_ids = set(starred_ids) - set(posted_ids)
 
     # Print what's going to be posted
-    print(f"Going to post the item's ids: {posting_ids}")
+    # print(f"Going to post the item's ids: {posting_ids}")
     
     return posting_ids
 

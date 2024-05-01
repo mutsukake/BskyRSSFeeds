@@ -1,8 +1,9 @@
 from inor_utils import *
 from db_utils import *
 from posting import *
+from config import load_config
 
-from config import load_configuration
+
 
 def main():
 
@@ -18,8 +19,9 @@ def main():
 
     
     saving_items = get_posting_items(inor_access_token, table_name)
+    
 
-    # Save the items to the database
+    # # Save the items to the database
     save_items(saving_items, table_name)
     
     posting_bsky(saving_items)

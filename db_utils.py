@@ -21,6 +21,9 @@ def select_starred_items(starred_items, posting_ids):
     
 def save_items(saving_items, table_name):
     
+    if saving_items is None:
+        return None
+
     try:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -33,12 +36,12 @@ def save_items(saving_items, table_name):
                 url TEXT
             )
         ''')
+        
 
-        # Insert each item into the database
         for item in saving_items:
-            c.execute(f'''
-                INSERT OR REPLACE INTO {table_name} VALUES (?, ?, ?)
-            ''', (item.get('id'), item.get('title'), item.get('url')))
+                c.execute(f'''
+                        INSERT OR REPLACE INTO {table_name} VALUES (?, ?, ?)
+                    ''', (item.get('id'), item.get('title'), item.get('url')))
 
         conn.commit()
         
@@ -47,7 +50,7 @@ def save_items(saving_items, table_name):
         saved_items = c.fetchall()
         print(f"items saved: {saved_items}")
         return saved_items
-    
+        
     except sqlite3.Error as e:
         print(f"An error occurred: {str(e)}")
 
@@ -93,18 +96,15 @@ def get_posting_items(inor_access_token, table_name):
     # Get the posted ids from the database
     posted_ids = load_posted_ids(table_name)
 
-    print(f"posted_ids: {posted_ids}")
-    print(f"starred_ids: {starred_ids}")
+    # print(f"posted_ids: {posted_ids}")
+    # print(f"starred_ids: {starred_ids}")
 
     posting_ids = set(starred_ids) - set(posted_ids)
     if len(posting_ids) == 0:
         print("No new items to post")
-        return
-    print(f"posting_ids: {posting_ids}")
-
-    # Retrieve the items to be saved from ids
-    result = select_starred_items(starred_item, posting_ids)
-    
-    return result
-
-
+        # end the function
+        return None
+    else:
+        print(f"posting_ids: {posting_ids}")
+        result = select_starred_items(starred_item, posting_ids)
+        return result
