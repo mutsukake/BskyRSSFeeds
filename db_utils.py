@@ -48,7 +48,6 @@ def save_items(saving_items, table_name):
         # Select and print the items
         c.execute(f'SELECT * FROM {table_name}')
         saved_items = c.fetchall()
-        print(f"items saved: {saved_items}")
         return saved_items
         
     except sqlite3.Error as e:

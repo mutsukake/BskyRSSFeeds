@@ -3,17 +3,16 @@ from config import load_config
 from atproto import Client, client_utils, models
 import os
 import sqlite3
-import httpx
-import asyncio
+from typing import Dict
+from requests import Session
+
 
 # Your credentials
 
 config = load_config()
 username = config["bluesky_username"]
 password = config["bluesky_password"]
-
 db_name = config["db_name"]
-
 db_path = os.path.join(os.path.dirname(__file__), db_name)
 
 def login_bsky():
@@ -34,45 +33,60 @@ def get_ogp_image_url(url):
     else:
         return None
 
-async def fetch_and_upload_image(ogp_img_url, agent, url, title, ogp_text):
-    
-    image_data = ogp_img_url
+def fetch_embed_url_card(access_token: str, url: str) -> Dict:
 
-    # Upload the image
-    upload_response = await agent.upload_blob(bytearray(image_data), {
-        'encoding': 'image/jpeg',
-    })
-    upload_data = upload_response.json()
-
-    # Prepare the embed parameters
-    embed_params = {
-        '$type': 'app.bsky.embed.external',
-        'external': {
-            'uri': url,
-            'thumb': {
-                '$type': 'blob',
-                'ref': {
-                    '$link': str(upload_data['blob']['ref']),
-                },
-                'mimeType': upload_data['blob']['mimeType'],
-                'size': upload_data['blob']['size'],
-            },
-            'title': title,
-            'description': ogp_text,
-        },
+    # the required fields for every embed card
+    card = {
+        "uri": url,
+        "title": "",
+        "description": "",
     }
-    return embed_params
 
-# Example usage (you need to define `agent`, `ogp_img_url`, `tenki_url`, `title`, `ogp_text`)
-# asyncio.run(fetch_and_upload_image(ogp_img_url, agent, tenki_url, title, ogp_text))
+    # fetch the HTML
+    resp = requests.get(url)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
 
+    # parse out the "og:title" and "og:description" HTML meta tags
+    title_tag = soup.find("meta", property="og:title")
+    if title_tag:
+        card["title"] = title_tag["content"]
+    description_tag = soup.find("meta", property="og:description")
+    if description_tag:
+        card["description"] = description_tag["content"]
+
+    # if there is an "og:image" HTML meta tag, fetch and upload that image
+    image_tag = soup.find("meta", property="og:image")
+    if image_tag:
+        img_url = image_tag["content"]
+        # naively turn a "relative" URL (just a path) into a full URL, if needed
+        if "://" not in img_url:
+            img_url = url + img_url
+        resp = requests.get(img_url)
+        resp.raise_for_status()
+
+        blob_resp = requests.post(
+            "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
+            headers={
+                "Content-Type": IMAGE_MIMETYPE,
+                "Authorization": "Bearer " + access_token,
+            },
+            data=resp.content,
+        )
+        blob_resp.raise_for_status()
+        card["thumb"] = blob_resp.json()["blob"]
+
+    return {
+        "$type": "app.bsky.embed.external",
+        "external": card,
+    }
 
 def posting_bsky(saving_items):
 
     # Connect to the database
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
+    
     client = login_bsky()
 
     # Exception handling when the data is not found
@@ -81,36 +95,26 @@ def posting_bsky(saving_items):
 
     for item in saving_items:
 
-        title = item['title']  # Direct use of 'title'
-        url = item['url']
-        # Ensure 'TextBuilder' constructs the text and link correctly
-        text = client_utils.TextBuilder().text(title)
-
-        # Get the OGP image URL
-        ogp_img_url = get_ogp_image_url(url)
+        posting_url = item['url']
         
-        # Get the image name
-        ogp_img_name = ogp_img_url.split('/')[-1]
+        url = "https://public.api.bsky.app/xrpc"
 
-        # Prepare the embed parameters
-        thumb = client.upload_blob(ogp_img_name, bytearray(ogp_img_url), {
-            'encoding': 'image/jpeg',
-        })
-        
-        print(thumb.blob)
+        payload={
+            "identifier": username,
+            "password": password,
 
-        embed = models.AppBskyEmbedExternal.Main(
-            external=models.AppBskyEmbedExternal.External(
-                uri=url,
-                thumb=thumb.blob.ref.IpldLink.link,
-                title=title,
-                description=title,
-                
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
 
-            )
-        )
-        print(embed)
-        
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        print(response.text)
+
+        # post["embed"] = fetch_embed_url_card(session["accessJwt"], "https://bsky.app")
+        # print(post["embed"])
         
         # try:
         #     post = client.send_post(text, embed=embed)
