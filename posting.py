@@ -6,6 +6,8 @@ import sqlite3
 from typing import Dict
 from requests import Session
 
+import json
+
 
 # Your credentials
 
@@ -14,6 +16,8 @@ username = config["bluesky_username"]
 password = config["bluesky_password"]
 db_name = config["db_name"]
 db_path = os.path.join(os.path.dirname(__file__), db_name)
+
+create_session_url = "https://bsky.social/xrpc/com.atproto.server.createSession" 
 
 def login_bsky():
     client = Client()
@@ -34,6 +38,8 @@ def get_ogp_image_url(url):
         return None
 
 def fetch_embed_url_card(access_token: str, url: str) -> Dict:
+
+    IMAGE_MIMETYPE = "image/jpeg"
 
     # the required fields for every embed card
     card = {
@@ -95,31 +101,41 @@ def posting_bsky(saving_items):
 
     for item in saving_items:
 
+        text = item['title']
         posting_url = item['url']
         
-        url = "https://public.api.bsky.app/xrpc"
+        session = create_session()
 
-        payload={
-            "identifier": username,
-            "password": password,
+        post = {}  # Define the variable "post"
 
-        }
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-
-        response = requests.request("GET", url, headers=headers, data=payload)
-
-        print(response.text)
-
-        # post["embed"] = fetch_embed_url_card(session["accessJwt"], "https://bsky.app")
-        # print(post["embed"])
+        post["embed"] = fetch_embed_url_card(session["accessJwt"], posting_url)
+        print(post["embed"])
         
-        # try:
-        #     post = client.send_post(text, embed=embed)
-        #     return post
-        # except Exception as e:
-        #     print(f"Failed to send post for {title}: {e}")
+        try:
+            post = client.send_post(text, embed=post["embed"])
+            return post
+        except Exception as e:
+            print(e)
+            return None
 
 
+def create_session():
+
+    data = {
+        "identifier": username,
+        "password": password
+    }
+    headers = {
+        "Content-Type": "application/json; charset=UTF-8"
+    }
+    response = requests.post(create_session_url, data=json.dumps(data), headers=headers)
+    print(response)
+    accessJwt = response.json()["accessJwt"]
+    print(accessJwt) 
+    did = response.json()["did"]
+    print(did)
+
+    return {
+        "accessJwt": accessJwt,
+        "did": did
+    }
