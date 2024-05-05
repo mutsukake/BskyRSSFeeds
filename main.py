@@ -17,9 +17,7 @@ def main():
     if inor_access_token is False:
         return False
 
-    
     saving_items = get_posting_items(inor_access_token, table_name)
-    
 
     # # Save the items to the database
     save_items(saving_items, table_name)

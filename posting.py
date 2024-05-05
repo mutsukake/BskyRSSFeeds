@@ -100,7 +100,6 @@ def posting_bsky(saving_items):
             return None
 
     for item in saving_items:
-
         text = item['title']
         posting_url = item['url']
         
@@ -113,11 +112,11 @@ def posting_bsky(saving_items):
         
         try:
             post = client.send_post(text, embed=post["embed"])
-            return post
+            
         except Exception as e:
             print(e)
             return None
-
+    
 
 def create_session():
 
