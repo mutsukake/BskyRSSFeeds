@@ -1,10 +1,11 @@
 
 from config import load_config
-from atproto import Client, client_utils, models
+from atproto import Client
 import os
 import sqlite3
 from typing import Dict
-from requests import Session
+from bs4 import BeautifulSoup
+import requests
 
 import json
 
@@ -25,8 +26,6 @@ def login_bsky():
     print('Welcome,', profile.display_name)
     return client
 
-from bs4 import BeautifulSoup
-import requests
 
 def get_ogp_image_url(url):
     response = requests.get(url)
