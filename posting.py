@@ -6,6 +6,7 @@ import sqlite3
 from typing import Dict
 from bs4 import BeautifulSoup
 import requests
+from requests import Session
 
 import json
 
@@ -126,13 +127,19 @@ def create_session():
     headers = {
         "Content-Type": "application/json; charset=UTF-8"
     }
-    response = requests.post(create_session_url, data=json.dumps(data), headers=headers)
+    try:
+        response = requests.post(create_session_url, data=json.dumps(data), headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        print(err)
+        if response.status_code == 406:
+            return
+    
     print(response)
-    accessJwt = response.json()["accessJwt"]
-    print(accessJwt) 
-    did = response.json()["did"]
-    print(did)
 
+    accessJwt = response.json()["accessJwt"]
+    did = response.json()["did"]
+    
     return {
         "accessJwt": accessJwt,
         "did": did
