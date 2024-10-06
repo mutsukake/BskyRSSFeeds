@@ -101,6 +101,8 @@ def posting_bsky(saving_items):
 
     for item in saving_items:
         text = item['title']
+        # trim_text_to_limit(text)
+        
         posting_url = item['url']
         
         session = create_session()
@@ -115,7 +117,7 @@ def posting_bsky(saving_items):
             
         except Exception as e:
             print(e)
-            return None
+            continue # Continue with the next item
     
 
 def create_session():
@@ -144,3 +146,8 @@ def create_session():
         "accessJwt": accessJwt,
         "did": did
     }
+
+def trim_text_to_limit(text, limit=300):
+    if len(text) > limit:
+        return text[:limit]
+    return text
