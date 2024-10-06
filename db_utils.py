@@ -95,9 +95,6 @@ def get_posting_items(inor_access_token, table_name):
     # Get the posted ids from the database
     posted_ids = load_posted_ids(table_name)
 
-    # print(f"posted_ids: {posted_ids}")
-    # print(f"starred_ids: {starred_ids}")
-
     posting_ids = set(starred_ids) - set(posted_ids)
     if len(posting_ids) == 0:
         print("No new items to post")
