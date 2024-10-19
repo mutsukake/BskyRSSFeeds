@@ -7,6 +7,8 @@ from typing import Dict
 from bs4 import BeautifulSoup
 import requests
 from requests import Session
+from PIL import Image
+from io import BytesIO
 
 import json
 
@@ -70,6 +72,19 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
             img_url = url + img_url
         resp = requests.get(img_url)
         resp.raise_for_status()
+
+        TEMP_IMAGE_PATH = "temp.jpg"
+        # if the image is too large, resize it
+        if len(resp.content) > 1024 * 1024:
+                img = Image.open(BytesIO(resp.content))
+                img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
+                while os.path.getsize(TEMP_IMAGE_PATH) > 1024 * 1024:
+                    img = img.resize(
+                        (img.size[0] // 2, img.size[1] // 2), Image.ANTIALIAS
+                    )
+                    img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
+                with open(TEMP_IMAGE_PATH, "rb") as f:
+                    resp.content = f.read()
 
         blob_resp = requests.post(
             "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
