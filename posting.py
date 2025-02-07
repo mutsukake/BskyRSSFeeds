@@ -53,7 +53,6 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
 
     # fetch the HTML
     resp = requests.get(url)
-    resp.encoding = "utf-8"
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -73,7 +72,6 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
         if "://" not in img_url:
             img_url = url + img_url
         resp = requests.get(img_url)
-        resp.encoding = "utf-8"
         resp.raise_for_status()
 
         TEMP_IMAGE_PATH = "temp.jpg"
