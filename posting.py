@@ -29,17 +29,6 @@ def login_bsky():
     print('Welcome,', profile.display_name)
     return client
 
-
-def get_ogp_image_url(url):
-    response = requests.get(url)
-    response.encoding = "utf-8"
-    soup = BeautifulSoup(response.text, 'html.parser')
-    og_image = soup.find('meta', property='og:image')
-    if og_image:
-        return og_image['content']
-    else:
-        return None
-
 def fetch_embed_url_card(access_token: str, url: str) -> Dict:
 
     IMAGE_MIMETYPE = "image/jpeg"
@@ -53,6 +42,7 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
 
     # fetch the HTML
     resp = requests.get(url)
+    resp.encoding = resp.apparent_encoding  # use apparent encoding instead of forcing utf-8
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -72,20 +62,21 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
         if "://" not in img_url:
             img_url = url + img_url
         resp = requests.get(img_url)
+        # For binary image data, encoding is not required.
         resp.raise_for_status()
 
         TEMP_IMAGE_PATH = "temp.jpg"
         # if the image is too large, resize it
         if len(resp.content) > 1024 * 1024:
-                img = Image.open(BytesIO(resp.content))
+            img = Image.open(BytesIO(resp.content))
+            img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
+            while os.path.getsize(TEMP_IMAGE_PATH) > 1024 * 1024:
+                img = img.resize(
+                    (img.size[0] // 2, img.size[1] // 2), Image.ANTIALIAS
+                )
                 img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
-                while os.path.getsize(TEMP_IMAGE_PATH) > 1024 * 1024:
-                    img = img.resize(
-                        (img.size[0] // 2, img.size[1] // 2), Image.ANTIALIAS
-                    )
-                    img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
-                with open(TEMP_IMAGE_PATH, "rb") as f:
-                    resp.content = f.read()
+            with open(TEMP_IMAGE_PATH, "rb") as f:
+                resp.content = f.read()
 
         blob_resp = requests.post(
             "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
@@ -102,7 +93,6 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
         "$type": "app.bsky.embed.external",
         "external": card,
     }
-
 def posting_bsky(saving_items):
 
     # Connect to the database
