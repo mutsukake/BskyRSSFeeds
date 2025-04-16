@@ -54,6 +54,13 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
     # fetch the HTML
     resp = requests.get(url)
     resp.raise_for_status()
+
+    
+    # Explicitly set the encoding - try to get it from the response or use utf-8
+    if resp.encoding.lower() != 'utf-8':
+        resp.encoding = resp.apparent_encoding or 'utf-8'
+    
+
     soup = BeautifulSoup(resp.text, "html.parser")
 
     # parse out the "og:title" and "og:description" HTML meta tags
