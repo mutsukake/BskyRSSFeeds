@@ -7,7 +7,7 @@ from typing import Dict
 from bs4 import BeautifulSoup
 import requests
 from requests import Session
-from PIL import Image
+from PIL import Image, ImageFilter
 from io import BytesIO
 
 import json
@@ -105,7 +105,7 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
                 img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
                 while os.path.getsize(TEMP_IMAGE_PATH) > 1024 * 1024:
                     img = img.resize(
-                        (img.size[0] // 2, img.size[1] // 2), Image.ANTIALIAS
+                        (img.size[0] // 2, img.size[1] // 2), Image.Resampling.LANCZOS
                     )
                     img.save(TEMP_IMAGE_PATH, optimize=True, quality=85)
                 with open(TEMP_IMAGE_PATH, "rb") as f:
