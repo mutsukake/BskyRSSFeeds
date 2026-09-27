@@ -19,10 +19,10 @@ def main():
 
     saving_items = get_posting_items(inor_access_token, table_name)
 
-    # # Save the items to the database
-    save_items(saving_items, table_name)
-    
-    posting_bsky(saving_items)
+    posted_items = posting_bsky(saving_items)
+
+    # Save only the items that were actually posted to Bluesky
+    save_items(posted_items, table_name)
     
 if __name__ == '__main__':
     main()

@@ -21,7 +21,12 @@ password = config["bluesky_password"]
 db_name = config["db_name"]
 db_path = os.path.join(os.path.dirname(__file__), db_name)
 
-create_session_url = "https://bsky.social/xrpc/com.atproto.server.createSession" 
+create_session_url = "https://bsky.social/xrpc/com.atproto.server.createSession"
+
+# Some sites reject requests without a browser-like User-Agent (403/503)
+REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+}
 
 def login_bsky():
     client = Client()
@@ -31,7 +36,7 @@ def login_bsky():
 
 
 def get_ogp_image_url(url):
-    response = requests.get(url)
+    response = requests.get(url, headers=REQUEST_HEADERS)
     response.encoding = "utf-8"
     soup = BeautifulSoup(response.text, 'html.parser')
     og_image = soup.find('meta', property='og:image')
@@ -52,7 +57,7 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
     }
 
     # fetch the HTML
-    resp = requests.get(url)
+    resp = requests.get(url, headers=REQUEST_HEADERS)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -71,7 +76,7 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
         # naively turn a "relative" URL (just a path) into a full URL, if needed
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url)
+        resp = requests.get(img_url, headers=REQUEST_HEADERS)
         resp.raise_for_status()
 
         TEMP_IMAGE_PATH = "temp.jpg"
@@ -113,7 +118,9 @@ def posting_bsky(saving_items):
 
     # Exception handling when the data is not found
     if saving_items is None:
-            return None
+            return []
+
+    posted_items = []
 
     for item in saving_items:
         text = item['title']
@@ -125,16 +132,24 @@ def posting_bsky(saving_items):
 
         post = {}  # Define the variable "post"
 
-        post["embed"] = fetch_embed_url_card(session["accessJwt"], posting_url)
-        print(post["embed"])
-        
         try:
-            post = client.send_post(text, embed=post["embed"])
-            
+            post["embed"] = fetch_embed_url_card(session["accessJwt"], posting_url)
         except Exception as e:
             print(e)
             continue # Continue with the next item
-    
+        print(post["embed"])
+
+        try:
+            post = client.send_post(text, embed=post["embed"])
+
+        except Exception as e:
+            print(e)
+            continue # Continue with the next item
+
+        posted_items.append(item)
+
+    return posted_items
+
 
 def create_session():
 

@@ -10,10 +10,10 @@ app.secret_key = secrets.token_hex(16)  # Generate a secure secret key
 
 # Replace these with your Inoreader client ID and secret
 load_dotenv()
-inor_APP_ID = os.getenv("inor_APP_ID")
-inor_APP_KEY = os.getenv("inor_APP_KEY")
-inor_REDIRECT_URI = os.getenv("inor_REDIRECT_URI")
-inor_OAUTH_INIT_SERVER = os.getenv("inor_OAUTH_INIT_SERVER")
+inor_APP_ID = os.getenv("inor_app_id")
+inor_APP_KEY = os.getenv("inor_app_key")
+inor_REDIRECT_URI = os.getenv("inor_redirect_url")
+inor_OAUTH_INIT_SERVER = os.getenv("inor_oauth_init_server")
 ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 
 port = 5001
@@ -63,10 +63,10 @@ def callback():
 
             # Overwrite the variables
             for i, line in enumerate(lines):
-                if line.startswith('inor_ACCESS_TOKEN'):
-                    lines[i] = f"inor_ACCESS_TOKEN={access_token}\n"
-                elif line.startswith('inor_REFRESH_TOKEN'):
-                    lines[i] = f"inor_REFRESH_TOKEN={refresh_token}\n"
+                if line.startswith('inor_access_token'):
+                    lines[i] = f"inor_access_token={access_token}\n"
+                elif line.startswith('inor_refresh_token'):
+                    lines[i] = f"inor_refresh_token={refresh_token}\n"
 
             # Write the file back out
             with open('.env', 'w') as file:
