@@ -23,11 +23,6 @@ db_path = os.path.join(os.path.dirname(__file__), db_name)
 
 create_session_url = "https://bsky.social/xrpc/com.atproto.server.createSession"
 
-# Some sites reject requests without a browser-like User-Agent (403/503)
-REQUEST_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
-}
-
 def login_bsky():
     client = Client()
     profile = client.login(username, password)
@@ -36,7 +31,14 @@ def login_bsky():
 
 
 def get_ogp_image_url(url):
-    response = requests.get(url, headers=REQUEST_HEADERS)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+    }
+    response = requests.get(url, headers=headers)
     response.encoding = "utf-8"
     soup = BeautifulSoup(response.text, 'html.parser')
     og_image = soup.find('meta', property='og:image')
@@ -49,6 +51,16 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
 
     IMAGE_MIMETYPE = "image/jpeg"
 
+    # Headers to mimic a real browser request
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+    }
+
     # the required fields for every embed card
     card = {
         "uri": url,
@@ -57,8 +69,15 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
     }
 
     # fetch the HTML
-    resp = requests.get(url, headers=REQUEST_HEADERS)
+    resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
+
+    
+    # Explicitly set the encoding - try to get it from the response or use utf-8
+    if resp.encoding and resp.encoding.lower() != 'utf-8':
+        resp.encoding = resp.apparent_encoding or 'utf-8'
+    
+
     soup = BeautifulSoup(resp.text, "html.parser")
 
     # parse out the "og:title" and "og:description" HTML meta tags
@@ -76,7 +95,7 @@ def fetch_embed_url_card(access_token: str, url: str) -> Dict:
         # naively turn a "relative" URL (just a path) into a full URL, if needed
         if "://" not in img_url:
             img_url = url + img_url
-        resp = requests.get(img_url, headers=REQUEST_HEADERS)
+        resp = requests.get(img_url, headers=headers)
         resp.raise_for_status()
 
         TEMP_IMAGE_PATH = "temp.jpg"
