@@ -16,5 +16,8 @@ def load_config():
         "inor_redirect_uri": getenv("inor_redirect_uri"),
         "inor_starred_url": getenv("inor_starred_url"),
         "db_name": getenv("db_name"),
+        "yt_api_key": getenv("yt_api_key"),
+        "yt_playlist_id": getenv("yt_playlist_id"),
+        "yt_table_name": getenv("yt_table_name", "posted_youtube"),
     }
     return config
